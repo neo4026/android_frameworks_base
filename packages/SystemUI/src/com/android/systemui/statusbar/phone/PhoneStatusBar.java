@@ -89,6 +89,7 @@ import android.widget.TextView;
 import com.android.internal.statusbar.StatusBarIcon;
 import com.android.internal.statusbar.StatusBarNotification;
 import com.android.systemui.R;
+import com.android.systemui.TransparencyManager;
 import com.android.systemui.statusbar.BaseStatusBar;
 import com.android.systemui.statusbar.CommandQueue;
 import com.android.systemui.statusbar.GestureRecorder;
@@ -178,6 +179,8 @@ public class PhoneStatusBar extends BaseStatusBar {
     Point mCurrentDisplaySize = new Point();
 
     IDreamManager mDreamManager;
+
+    TransparencyManager mTransparencyManager;
 
     StatusBarWindowView mStatusBarWindow;
     PhoneStatusBarView mStatusBarView;
@@ -733,6 +736,11 @@ public class PhoneStatusBar extends BaseStatusBar {
 //        if (wimaxRSSI != null) {
 //            mNetworkController.addWimaxIconView(wimaxRSSI);
 //        }
+
+        // register TransparencyManager
+        mTransparencyManager = new TransparencyManager(mContext);
+        mTransparencyManager.setStatusbar(mStatusBarView);
+//        mTransparencyManager.setNavbar(mNavigationBarView);
 
         // receive broadcasts
         IntentFilter filter = new IntentFilter();
@@ -2226,6 +2234,8 @@ public class PhoneStatusBar extends BaseStatusBar {
 
     @Override
     public void topAppWindowChanged(boolean showMenu) {
+        mTransparencyManager.update();
+
         if (DEBUG) {
             Slog.d(TAG, (showMenu?"showing":"hiding") + " the MENU button");
         }

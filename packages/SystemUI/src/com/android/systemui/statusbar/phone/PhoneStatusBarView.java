@@ -243,4 +243,21 @@ public class PhoneStatusBarView extends PanelBar {
 
         mBar.updateCarrierLabelVisibility(false);
     }
+
+    public void setBackgroundAlpha(float alpha) {
+        final int ALL_TRSP = 0x00000000;
+        final int NO_TRSP = 0xff000000;
+        final int HALF_TRSP = 0x7f000000;
+
+        int mColor = NO_TRSP;
+
+        if (alpha < 0.5) {
+            mColor = ALL_TRSP;
+        } else if (alpha < 1) {
+            mColor = HALF_TRSP;
+        } else {
+            mColor = NO_TRSP;
+        }
+        this.setBackgroundColor(mColor);
+    }
 }
