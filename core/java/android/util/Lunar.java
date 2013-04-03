@@ -24,7 +24,7 @@ import java.util.Date;
 
 import android.content.Context;
 
-import com.android.internal.R;
+import com.shendu.resource.R;
 
 public class Lunar {
     private int year;

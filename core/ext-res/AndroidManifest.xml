@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.shendu.resource" 
+    coreApp="true" android:sharedUserId="android.uid.system"
+    android:sharedUserLabel="@*android:string/android_system_label">
+
+    <application
+        android:label="@string/app_name"
+        android:process="system"
+        android:persistent="true"
+        android:hasCode="false"
+        android:allowClearUserData="false"
+        android:backupAgent="com.android.server.SystemBackupAgent"
+        android:killAfterRestore="false"
+        android:icon="@*android:drawable/ic_launcher_android"
+        android:supportsRtl="true">
+    </application>
+
+</manifest>

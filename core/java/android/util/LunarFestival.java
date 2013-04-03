@@ -18,7 +18,7 @@ package android.util;
 
 import android.content.Context;
 
-import com.android.internal.R;
+import com.shendu.resource.R;
 
 public class LunarFestival {
 	public static String getLunarFestival(String chinadate, Context context){

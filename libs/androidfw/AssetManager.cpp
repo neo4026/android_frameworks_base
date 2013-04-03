@@ -63,6 +63,7 @@ static const char* kDefaultVendor = "default";
 static const char* kAssetsRoot = "assets";
 static const char* kAppZipName = NULL; //"classes.jar";
 static const char* kSystemAssets = "framework/framework-res.apk";
+static const char* kExtResAssets = "framework/framework-ext-res.apk";
 static const char* kIdmapCacheDir = "resource-cache";
 
 static const char* kExcludeExtension = ".EXCLUDE";
@@ -380,7 +381,13 @@ bool AssetManager::addDefaultAssets()
     String8 path(root);
     path.appendPath(kSystemAssets);
 
-    return addAssetPath(path, NULL);
+    if(!addAssetPath(path, NULL)) {
+        return false;
+    }
+
+    String8 path2(root);
+    path2.appendPath(kExtResAssets);
+    return addAssetPath(path2, NULL);
 }
 
 void* AssetManager::nextAssetPath(void* cookie) const

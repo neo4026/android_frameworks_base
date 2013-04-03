@@ -1107,6 +1107,7 @@ public class PackageManagerService extends IPackageManager.Stub {
             // Gross hack for now: we know this file doesn't contain any
             // code, so don't dexopt it to avoid the resulting log spew.
             libFiles.add(mFrameworkDir.getPath() + "/framework-res.apk");
+            libFiles.add(mFrameworkDir.getPath() + "/framework-ext-res.apk");
 
             /**
              * And there are a number of commands implemented in Java, which

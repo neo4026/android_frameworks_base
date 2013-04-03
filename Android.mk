@@ -25,6 +25,7 @@ LOCAL_PATH := $(call my-dir)
 # R.java file as a prerequisite.
 # TODO: find a more appropriate way to do this.
 framework_res_source_path := APPS/framework-res_intermediates/src
+framework_ext_res_source_path := APPS/framework-ext-res_intermediates/src
 
 include $(CLEAR_VARS)
 
@@ -245,6 +246,7 @@ LOCAL_AIDL_INCLUDES += $(FRAMEWORKS_BASE_JAVA_SRC_DIRS)
 
 LOCAL_INTERMEDIATE_SOURCES := \
 			$(framework_res_source_path)/android/R.java \
+			$(framework_ext_res_source_path)/com/shendu/resource/R.java \
 			$(framework_res_source_path)/android/Manifest.java \
 			$(framework_res_source_path)/com/android/internal/R.java
 
@@ -266,10 +268,12 @@ include $(BUILD_JAVA_LIBRARY)
 # Make sure that R.java and Manifest.java are built before we build
 # the source for this library.
 framework_res_R_stamp := \
-	$(call intermediates-dir-for,APPS,framework-res,,COMMON)/src/R.stamp
+	$(call intermediates-dir-for,APPS,framework-res,,COMMON)/src/R.stamp \
+	$(call intermediates-dir-for,APPS,framework-ext-res,,COMMON)/src/R.stamp
 $(full_classes_compiled_jar): $(framework_res_R_stamp)
 
 # Make sure that framework-res is installed when framework is.
+$(LOCAL_INSTALLED_MODULE): | $(dir $(LOCAL_INSTALLED_MODULE))framework-ext-res.apk
 $(LOCAL_INSTALLED_MODULE): | $(dir $(LOCAL_INSTALLED_MODULE))framework-res.apk
 
 framework_built := $(call java-lib-deps,framework)
