@@ -23,11 +23,13 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.provider.CalendarContract;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
+import android.util.Lunar;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
@@ -38,6 +40,7 @@ import android.widget.TextView;
 import com.android.systemui.R;
 
 import java.util.Date;
+import java.util.Calendar;
 
 public class DateView extends TextView implements OnClickListener, OnLongClickListener {
     private static final String TAG = "DateView";
@@ -116,8 +119,15 @@ public class DateView extends TextView implements OnClickListener, OnLongClickLi
     }
 
     protected void updateClock() {
+        final Resources res = getContext().getResources();
+        final String strCountry = res.getConfiguration().locale.getCountry();
         final String dateFormat = getContext().getString(R.string.full_wday_month_day_no_year_split);
-        setText(DateFormat.format(dateFormat, new Date()));
+        final boolean isCN = (strCountry.equals("CN") || strCountry.equals("TW"));
+        setText(DateFormat.format(dateFormat, new Date())
+            + (isCN ? 
+                  ("\n" + new Lunar(Calendar.getInstance(), getContext()).toString())
+                  : "")
+        );
     }
 
     private boolean isVisible() {

@@ -21,4 +21,6 @@
          but this may be overridden on a per-locale basis if necessary. -->
     <string name="status_bar_date_formatter">%2$s\n%1$s</string>
 
+    <!-- Date format for display in status bar.  -->
+    <string name="full_wday_month_day_no_year_split">@*android:string/abbrev_wday_month_day_year</string>
 </resources>
