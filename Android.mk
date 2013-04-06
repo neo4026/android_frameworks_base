@@ -270,7 +270,7 @@ include $(BUILD_JAVA_LIBRARY)
 framework_res_R_stamp := \
 	$(call intermediates-dir-for,APPS,framework-res,,COMMON)/src/R.stamp \
 	$(call intermediates-dir-for,APPS,framework-ext-res,,COMMON)/src/R.stamp
-$(full_classes_compiled_jar): $(framework_res_R_stamp)
+$(full_classes_compiled_jar): $(framework_ext_res_R_stamp)
 
 # Make sure that framework-res is installed when framework is.
 $(LOCAL_INSTALLED_MODULE): | $(dir $(LOCAL_INSTALLED_MODULE))framework-ext-res.apk

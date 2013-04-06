@@ -13,6 +13,9 @@ LOCAL_PACKAGE_NAME := framework-ext-res
 
 LOCAL_CERTIFICATE := platform
 
+# Make sure that framework-res is installed when framework is.
+$(LOCAL_INSTALLED_MODULE): | $(dir $(LOCAL_INSTALLED_MODULE))framework-res.apk
+
 include $(BUILD_PACKAGE)
 
 # Use the following include to make our test apk.
