@@ -46,6 +46,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import com.android.internal.R;
+import com.android.internal.util.cm.TorchConstants;
 import com.android.internal.widget.LockPatternUtils;
 
 /**
@@ -124,8 +125,12 @@ public class KeyguardViewManager {
 
     private boolean shouldEnableScreenRotation() {
         Resources res = mContext.getResources();
+        boolean enableLockScreenRotation = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.LOCKSCREEN_ROTATION, 0) != 0;
+        boolean enableAccelerometerRotation = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.ACCELEROMETER_ROTATION, 1) != 0;
         return SystemProperties.getBoolean("lockscreen.rot_override",false)
-                || res.getBoolean(com.android.internal.R.bool.config_enableLockScreenRotation);
+                || (enableLockScreenRotation && enableAccelerometerRotation);
     }
 
     class ViewManagerHost extends FrameLayout {
@@ -224,14 +229,17 @@ public class KeyguardViewManager {
                     if (mKeyguardView.handleBackKey()) {
                         return true;
                     }
+                    break;
                 case KeyEvent.KEYCODE_HOME:
                     if (mKeyguardView.handleHomeKey()) {
                         return true;
                     }
+                    break;
                 case KeyEvent.KEYCODE_MENU:
                     if (mKeyguardView.handleMenuKey()) {
                         return true;
                     }
+                    break;
             }
         }
         return false;
@@ -239,7 +247,7 @@ public class KeyguardViewManager {
 
     private static boolean runAction(Context context, String uri) {
         if ("FLASHLIGHT".equals(uri)) {
-            context.sendBroadcast(new Intent("net.cactii.flash2.TOGGLE_FLASHLIGHT"));
+            context.sendBroadcast(new Intent(TorchConstants.ACTION_TOGGLE_STATE));
             return true;
         } else if ("NEXT".equals(uri)) {
             sendMediaButtonEvent(context, KeyEvent.KEYCODE_MEDIA_NEXT);

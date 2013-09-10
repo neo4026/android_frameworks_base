@@ -137,6 +137,7 @@ public class NotificationManagerService extends INotificationManager.Stub
 
     private long[] mDefaultVibrationPattern;
     private long[] mFallbackVibrationPattern;
+    private long[] mNoAlertsVibrationPattern;
 
     private boolean mSystemReady;
     private int mDisabledNotifications;
@@ -149,7 +150,7 @@ public class NotificationManagerService extends INotificationManager.Stub
 
     // for enabling and disabling notification pulse behaviour
     private boolean mScreenOn = true;
-    private boolean mWasScreenOn = false;
+    private boolean mDreaming = false;
     private boolean mInCall = false;
     private boolean mNotificationPulseEnabled;
     private HashMap<String, NotificationLedValues> mNotificationPulseCustomLedValues;
@@ -587,8 +588,15 @@ public class NotificationManagerService extends INotificationManager.Stub
                 mScreenOn = true;
             } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
                 mScreenOn = false;
-                mWasScreenOn = true;
-                updateLightsLocked();
+                updateNotificationPulse();
+            } else if (action.equals(Intent.ACTION_DREAMING_STARTED)) {
+                mDreaming = true;
+                updateNotificationPulse();
+            } else if (action.equals(Intent.ACTION_DREAMING_STOPPED)) {
+                mDreaming = false;
+                if (mScreenOn) {
+                    mNotificationLight.turnOff();
+                }
             } else if (action.equals(TelephonyManager.ACTION_PHONE_STATE_CHANGED)) {
                 mInCall = (intent.getStringExtra(TelephonyManager.EXTRA_STATE).equals(
                         TelephonyManager.EXTRA_STATE_OFFHOOK));
@@ -600,7 +608,9 @@ public class NotificationManagerService extends INotificationManager.Stub
                 }
             } else if (action.equals(Intent.ACTION_USER_PRESENT)) {
                 // turn off LED when user passes through lock screen
-                mNotificationLight.turnOff();
+                if (!mDreaming) {
+                    mNotificationLight.turnOff();
+                }
             }
         }
     };
@@ -766,6 +776,11 @@ public class NotificationManagerService extends INotificationManager.Stub
                 VIBRATE_PATTERN_MAXLEN,
                 DEFAULT_VIBRATE_PATTERN);
 
+        mNoAlertsVibrationPattern = getLongArray(resources,
+                com.android.internal.R.array.config_notificationNoAlertsVibePattern,
+                VIBRATE_PATTERN_MAXLEN,
+                DEFAULT_VIBRATE_PATTERN);
+
         // Don't start allowing notifications until the setup wizard has run once.
         // After that, including subsequent boots, init with notifications turned on.
         // This works on the first boot because the setup wizard will toggle this
@@ -782,6 +797,8 @@ public class NotificationManagerService extends INotificationManager.Stub
         filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         filter.addAction(Intent.ACTION_USER_PRESENT);
         filter.addAction(Intent.ACTION_USER_STOPPED);
+        filter.addAction(Intent.ACTION_DREAMING_STARTED);
+        filter.addAction(Intent.ACTION_DREAMING_STOPPED);
         mContext.registerReceiver(mIntentReceiver, filter);
         IntentFilter pkgFilter = new IntentFilter();
         pkgFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -1204,15 +1221,15 @@ public class NotificationManagerService extends INotificationManager.Stub
                 Log.e(TAG, "An error occurred profiling the notification.", th);
             }
 
-            // If we're not supposed to beep, vibrate, etc. then don't.
-            if (((mDisabledNotifications & StatusBarManager.DISABLE_NOTIFICATION_ALERTS) == 0)
-                    && (!(old != null
-                        && (notification.flags & Notification.FLAG_ONLY_ALERT_ONCE) != 0 ))
-                    && (r.userId == UserHandle.USER_ALL ||
-                        (r.userId == userId && r.userId == currentUser))
-                    && canInterrupt
-                    && mSystemReady) {
+            final boolean alertsDisabled =
+                    (mDisabledNotifications & StatusBarManager.DISABLE_NOTIFICATION_ALERTS) != 0;
+            boolean readyForAlerts = canInterrupt && mSystemReady &&
+                    (r.userId == UserHandle.USER_ALL || r.userId == userId && r.userId == currentUser) &&
+                    (old == null || (notification.flags & Notification.FLAG_ONLY_ALERT_ONCE) == 0);
+            boolean hasValidSound = false;
 
+            // If we're not supposed to beep, vibrate, etc. then don't.
+            if (readyForAlerts && !alertsDisabled) {
                 final AudioManager audioManager = (AudioManager) mContext
                 .getSystemService(Context.AUDIO_SERVICE);
 
@@ -1221,7 +1238,6 @@ public class NotificationManagerService extends INotificationManager.Stub
                     (notification.defaults & Notification.DEFAULT_SOUND) != 0;
 
                 Uri soundUri = null;
-                boolean hasValidSound = false;
 
                 if (!(inQuietHours && mQuietHoursMute) && useDefaultSound) {
                     soundUri = Settings.System.DEFAULT_NOTIFICATION_URI;
@@ -1260,8 +1276,14 @@ public class NotificationManagerService extends INotificationManager.Stub
                         }
                     }
                 }
+            }
 
+            if (readyForAlerts && (!alertsDisabled || canVibrateDuringAlertsDisabled())) {
                 // vibrate
+
+                final AudioManager audioManager = (AudioManager)
+                        mContext.getSystemService(Context.AUDIO_SERVICE);
+
                 // Does the notification want to specify its own vibration?
                 final boolean hasCustomVibrate = notification.vibrate != null;
 
@@ -1276,25 +1298,37 @@ public class NotificationManagerService extends INotificationManager.Stub
                 // The DEFAULT_VIBRATE flag trumps any custom vibration AND the fallback.
                 final boolean useDefaultVibrate =
                         (notification.defaults & Notification.DEFAULT_VIBRATE) != 0;
+
                 if (!(inQuietHours && mQuietHoursStill)
                         && (useDefaultVibrate || convertSoundToVibration || hasCustomVibrate)
                         && !(audioManager.getRingerMode() == AudioManager.RINGER_MODE_SILENT)) {
                     mVibrateNotification = r;
+
+                    int repeat = (notification.flags & Notification.FLAG_INSISTENT) != 0 ? 0: -1;
+                    long[] pattern;
+
+                    if (alertsDisabled) {
+                        pattern = mNoAlertsVibrationPattern;
+                    } else if (useDefaultVibrate) {
+                        pattern = mDefaultVibrationPattern;
+                    } else if (hasCustomVibrate) {
+                        pattern = notification.vibrate;
+                    } else {
+                        pattern = mFallbackVibrationPattern;
+                    }
+
                     if (useDefaultVibrate || convertSoundToVibration) {
                         // Escalate privileges so we can use the vibrator even if the notifying app
                         // does not have the VIBRATE permission.
                         long identity = Binder.clearCallingIdentity();
                         try {
-                            mVibrator.vibrate(useDefaultVibrate ? mDefaultVibrationPattern
-                                                                : mFallbackVibrationPattern,
-                                ((notification.flags & Notification.FLAG_INSISTENT) != 0) ? 0: -1);
+                            mVibrator.vibrate(pattern, repeat);
                         } finally {
                             Binder.restoreCallingIdentity(identity);
                         }
-                    } else if (notification.vibrate.length > 1) {
+                    } else if (pattern.length > 1) {
                         // If you want your own vibration pattern, you need the VIBRATE permission
-                        mVibrator.vibrate(notification.vibrate,
-                            ((notification.flags & Notification.FLAG_INSISTENT) != 0) ? 0: -1);
+                        mVibrator.vibrate(notification.vibrate, repeat);
                     }
                 }
             }
@@ -1312,6 +1346,8 @@ public class NotificationManagerService extends INotificationManager.Stub
             if ((notification.flags & Notification.FLAG_SHOW_LIGHTS) != 0
                     && canInterrupt) {
                 mLights.add(r);
+                // force reevaluation of active light
+                mLedNotification = null;
                 updateLightsLocked();
             } else {
                 if (old != null
@@ -1325,8 +1361,15 @@ public class NotificationManagerService extends INotificationManager.Stub
     }
 
     private boolean shouldConvertSoundToVibration() {
-        return Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.NOTIFICATION_CONVERT_SOUND_TO_VIBRATION, 1) != 0;
+        return Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.NOTIFICATION_CONVERT_SOUND_TO_VIBRATION,
+                1, UserHandle.USER_CURRENT_OR_SELF) != 0;
+    }
+
+    private boolean canVibrateDuringAlertsDisabled() {
+        return Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.NOTIFICATION_VIBRATE_DURING_ALERTS_DISABLED,
+                0, UserHandle.USER_CURRENT_OR_SELF) != 0;
     }
 
     private boolean inQuietHours() {
@@ -1511,7 +1554,7 @@ public class NotificationManagerService extends INotificationManager.Stub
     }
 
     public void cancelNotificationWithTag(String pkg, String tag, int id, int userId) {
-        checkCallerIsSystemOrSameApp(pkg);
+        checkCallerCanCancelNotification(pkg);
         userId = ActivityManager.handleIncomingUser(Binder.getCallingPid(),
                 Binder.getCallingUid(), userId, true, false, "cancelNotificationWithTag", pkg);
         // Don't allow client applications to cancel foreground service notis.
@@ -1521,7 +1564,7 @@ public class NotificationManagerService extends INotificationManager.Stub
     }
 
     public void cancelAllNotifications(String pkg, int userId) {
-        checkCallerIsSystemOrSameApp(pkg);
+        checkCallerCanCancelNotification(pkg);
 
         userId = ActivityManager.handleIncomingUser(Binder.getCallingPid(),
                 Binder.getCallingUid(), userId, true, false, "cancelAllNotifications", pkg);
@@ -1537,6 +1580,14 @@ public class NotificationManagerService extends INotificationManager.Stub
             return;
         }
         throw new SecurityException("Disallowed call for uid " + uid);
+    }
+
+    void checkCallerCanCancelNotification(String pkg) {
+        if (mContext.checkCallingOrSelfPermission(android.Manifest.permission.CANCEL_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        checkCallerIsSystemOrSameApp(pkg);
     }
 
     void checkCallerIsSystemOrSameApp(String pkg) {
@@ -1582,32 +1633,18 @@ public class NotificationManagerService extends INotificationManager.Stub
     {
         // handle notification lights
         if (mLedNotification == null) {
-            // get next notification, if any
-            int n = mLights.size();
-            if (n > 0) {
-                mLedNotification = mLights.get(n-1);
+            // use most recent light with highest score
+            for (int i = mLights.size(); i > 0; i--) {
+                NotificationRecord r = mLights.get(i - 1);
+                if (mLedNotification == null || r.score > mLedNotification.score) {
+                    mLedNotification = r;
+                }
             }
         }
 
-        boolean wasScreenOn = mWasScreenOn;
-        mWasScreenOn = false;
-
-        if (mLedNotification == null) {
-            mNotificationLight.turnOff();
-            return;
-        }
-
-        // We can assume that if the user turned the screen off while there was
-        // still an active notification then they wanted to keep the notification
-        // for later. In this case we shouldn't flash the notification light.
-        // For special notifications that automatically turn the screen on (such
-        // as missed calls), we use this flag to force the notification light
-        // even if the screen was turned off.
-        boolean forceWithScreenOff = (mLedNotification.notification.flags &
-                Notification.FLAG_FORCE_LED_SCREEN_OFF) != 0;
-
         // Don't flash while we are in a call, screen is on or we are in quiet hours with light dimmed
-        if (mInCall || mScreenOn || (inQuietHours() && mQuietHoursDim) || (wasScreenOn && !forceWithScreenOff)) {
+        if (mLedNotification == null || mInCall
+                || (mScreenOn && !mDreaming) || (inQuietHours() && mQuietHoursDim)) {
             mNotificationLight.turnOff();
         } else {
             int ledARGB;
@@ -1617,7 +1654,7 @@ public class NotificationManagerService extends INotificationManager.Stub
             if (ledValues != null) {
                 ledARGB = ledValues.color != 0 ? ledValues.color : mDefaultNotificationColor;
                 ledOnMS = ledValues.onMS >= 0 ? ledValues.onMS : mDefaultNotificationLedOn;
-                ledOffMS = ledValues.offMS >= 0 ? ledValues.offMS : mDefaultNotificationLedOn;
+                ledOffMS = ledValues.offMS >= 0 ? ledValues.offMS : mDefaultNotificationLedOff;
             } else {
                 if ((mLedNotification.notification.defaults & Notification.DEFAULT_LIGHTS) != 0) {
                     ledARGB = mDefaultNotificationColor;
@@ -1757,6 +1794,7 @@ public class NotificationManagerService extends INotificationManager.Stub
 
             pw.println("  mSoundNotification=" + mSoundNotification);
             pw.println("  mVibrateNotification=" + mVibrateNotification);
+            pw.println("  mLedNotification=" + mLedNotification);
             pw.println("  mDisabledNotifications=0x" + Integer.toHexString(mDisabledNotifications));
             pw.println("  mSystemReady=" + mSystemReady);
         }

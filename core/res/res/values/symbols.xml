@@ -863,6 +863,10 @@
   <java-symbol type="string" name="media_route_status_available" />
   <java-symbol type="string" name="media_route_status_not_available" />
   <java-symbol type="string" name="owner_name" />
+  <java-symbol type="string" name="policylab_enforceSelinux" />
+  <java-symbol type="string" name="policydesc_enforceSelinux" />
+  <java-symbol type="string" name="policylab_enforceMmac" />
+  <java-symbol type="string" name="policydesc_enforceMmac" />
 
   <java-symbol type="plurals" name="abbrev_in_num_days" />
   <java-symbol type="plurals" name="abbrev_in_num_hours" />
@@ -1220,6 +1224,8 @@
   <java-symbol type="bool" name="config_disableMenuKeyInLockScreen" />
   <java-symbol type="bool" name="config_enableLockBeforeUnlockScreen" />
   <java-symbol type="bool" name="config_enableLockScreenRotation" />
+  <java-symbol type="bool" name="config_forceAnalogCarDock" />
+  <java-symbol type="bool" name="config_forceAnalogDeskDock" />
   <java-symbol type="bool" name="config_lidControlsSleep" />
   <java-symbol type="bool" name="config_reverseDefaultRotation" />
   <java-symbol type="bool" name="config_showNavigationBar" />
@@ -1857,6 +1863,7 @@
   <java-symbol type="bool" name="config_intrusiveBatteryLed" />
   <java-symbol type="bool" name="config_multiColorBatteryLed" />
   <java-symbol type="array" name="notification_light_package_mapping" />
+  <java-symbol type="array" name="config_notificationNoAlertsVibePattern" />
 
   <!-- Power menu -->
   <java-symbol type="string" name="global_action_screenshot" />
@@ -1879,6 +1886,8 @@
   <!-- Profiles -->
   <java-symbol type="xml" name="profile_default" />
   <java-symbol type="string" name="wildcardProfile" />
+  <java-symbol type="string" name="profile_picker_title" />
+  <java-symbol type="string" name="profile_none" />
 
   <!-- Power widget -->
   <java-symbol type="string" name="hour" />
@@ -1934,6 +1943,9 @@
   <java-symbol type="bool" name="config_stylusGestures" />
   <java-symbol type="string" name="stylus_app_not_installed" />
 
+  <!-- Panel auto brightness -->
+  <java-symbol type="integer" name="config_panelAutoBrightnessValue" />
+
   <!-- Options that show upon long-pressing a key on the physical keyboard -->
   <java-symbol type="string" name="symbol_picker_0" />
   <java-symbol type="string" name="symbol_picker_1" />
@@ -1988,4 +2000,21 @@
   <java-symbol type="string" name="symbol_picker_Y" />
   <java-symbol type="string" name="symbol_picker_z" />
   <java-symbol type="string" name="symbol_picker_Z" />
+
+  <!-- Pie Controls -->
+  <java-symbol type="bool" name="config_allowPieService" />
+  <java-symbol type="dimen" name="pie_trigger_thickness" />
+  <java-symbol type="dimen" name="pie_trigger_distance" />
+  <java-symbol type="dimen" name="pie_perpendicular_distance" />
+
+  <!-- Electron Beam -->
+  <java-symbol type="bool" name="config_screenOffAnimation" />
+
+  <!-- Privacy Guard -->
+  <java-symbol type="string" name="privacy_guard_notification" />
+  <java-symbol type="string" name="privacy_guard_notification_detail" />
+  <java-symbol type="drawable" name="stat_notify_privacy_guard" />
+
+  <!-- Package Manager -->
+  <java-symbol type="array" name="config_disabledComponents" />
 </resources>

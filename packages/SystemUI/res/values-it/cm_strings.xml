@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--  Copyright (C) 2013 The CyanogenMod Project
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2012-2013 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
      limitations under the License.
- -->
-
+-->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="accessibility_data_connection_HP">HSPA+</string>
     <string name="accessibility_battery_level">Batteria <xliff:g id="number">%d</xliff:g> percento.</string>
@@ -53,8 +52,10 @@
     <string name="quick_settings_lte">LTE</string>
     <string name="quick_settings_lte_off">LTE OFF</string>
     <string name="quick_settings_volume">Volume</string>
+    <string name="quick_settings_camera_label">Fotocamera</string>
     <string name="quick_settings_expanded_desktop">Esteso</string>
     <string name="quick_settings_expanded_desktop_off">Normale</string>
+    <string name="quick_settings_camera_error_connect">Impossibile connettersi alla fotocamera</string>
     <string name="navbar_dialog_title">Azione da associare</string>
     <string name="navbar_home_button">Pulsante Home</string>
     <string name="navbar_recent_button">Pulsante Recenti</string>

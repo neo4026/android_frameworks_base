@@ -18,6 +18,7 @@ package android.provider;
 
 import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
+import android.app.ActivityManagerNative;
 import android.app.SearchManager;
 import android.app.WallpaperManager;
 import android.content.ComponentName;
@@ -37,6 +38,7 @@ import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.DropBoxManager;
 import android.os.IBinder;
@@ -1740,16 +1742,21 @@ public final class Settings {
         public static final String AUTO_BRIGHTNESS_BACKLIGHT = "auto_brightness_backlight";
 
         /**
-         * Whether to enable the electron beam animation when turning screen on
+         * Correction factor for auto-brightness adjustment light sensor
+         * debounce times.
+         * Smaller factors will make the adjustment more responsive, but might
+         * cause flicker and/or cause higher CPU usage.
+         * Valid range is 0.2 ... 3
          *
-         * @hide */
-        public static final String ELECTRON_BEAM_ANIMATION_ON = "electron_beam_animation_on";
+         * @hide
+         */
+        public static final String AUTO_BRIGHTNESS_RESPONSIVENESS = "auto_brightness_responsiveness";
 
         /**
          * Whether to enable the electron beam animation when turning screen off
          *
          * @hide */
-        public static final String ELECTRON_BEAM_ANIMATION_OFF = "electron_beam_animation_off";
+        public static final String SCREEN_OFF_ANIMATION = "screen_off_animation";
 
         /**
          * Control whether the process CPU usage meter should be shown.
@@ -1904,6 +1911,12 @@ public final class Settings {
         @Deprecated
         public static final String NOTIFICATIONS_USE_RING_VOLUME =
             "notifications_use_ring_volume";
+
+        /**
+         * Whether the blacklisting feature for phone calls is enabled
+         * @hide
+         */
+        public static final String PHONE_BLACKLIST_ENABLED = "phone_blacklist_enabled";
 
         /**
          * Whether the phone ringtone should be played in an increasing manner
@@ -2117,6 +2130,13 @@ public final class Settings {
          * disabled by the application.
          */
         public static final String ACCELEROMETER_ROTATION = "accelerometer_rotation";
+
+        /**
+         * Control whether the accelerometer will be used to change lockscreen
+         * orientation.  If 0, it will not be used; if 1, it will be used by default.
+         * @hide
+         */
+        public static final String LOCKSCREEN_ROTATION = "lockscreen_rotation";
 
         /**
          * Control the type of rotation which can be performed using the accelerometer
@@ -2407,6 +2427,13 @@ public final class Settings {
         public static final String LOCKSCREEN_TARGETS = "lockscreen_targets";
 
         /**
+         * Whether music controls should be shown on the lockscreen if a supporting
+         * music player is active.
+         * @hide
+         */
+        public static final String LOCKSCREEN_MUSIC_CONTROLS = "lockscreen_music_controls";
+
+        /**
          * @deprecated Use {@link android.provider.Settings.Global#LOW_BATTERY_SOUND}
          * instead
          * @hide
@@ -2498,11 +2525,6 @@ public final class Settings {
         public static final String SIP_ASK_ME_EACH_TIME = "SIP_ASK_ME_EACH_TIME";
 
         /**
-         * Torch state (flashlight)
-         * @hide
-         */
-        public static final String TORCH_STATE = "torch_state";
-        /**
          * Pointer speed setting.
          * This is an integer value in a range between -7 and +7, so there are 15 possible values.
          *   -7 = slowest
@@ -2540,6 +2562,16 @@ public final class Settings {
          * @hide
          */
         public static final String PIE_SIZE = "pie_size";
+
+        /**
+         * Sensitivity for triggering the pie controls.
+         *  1 = hard
+         *  ...
+         *  3 = easy
+         *  Default: 3
+         * @hide
+         */
+        public static final String PIE_SENSITIVITY = "pie_sensitivity";
 
         /**
          * Quick Settings Panel Tiles to Use
@@ -2745,6 +2777,19 @@ public final class Settings {
          */
         public static final String STATUS_BAR_IME_SWITCHER = "status_bar_ime_switcher";
 
+        /**
+         * Whether to collapse the notification area after dismissing the last notification
+         * @hide
+         */
+        public static final String STATUS_BAR_COLLAPSE_ON_DISMISS = "status_bar_collapse_on_dismiss";
+
+        /** @hide */
+        public static final int STATUS_BAR_COLLAPSE_NEVER = 0;
+        /** @hide */
+        public static final int STATUS_BAR_COLLAPSE_IF_EMPTIED = 1;
+        /** @hide */
+        public static final int STATUS_BAR_COLLAPSE_IF_NO_CLEARABLE = 2;
+
          /**
          * Expanded desktop on/off state
          * @hide
@@ -2796,6 +2841,12 @@ public final class Settings {
          * @hide
          */
         public static final String MENU_UNLOCK_SCREEN = "menu_unlock_screen";
+
+        /**
+         * Whether to wake the screen with the home key, the value is boolean.
+         * @hide
+         */
+        public static final String HOME_WAKE_SCREEN = "home_wake_screen";
 
         /**
          * Whether to wake the screen with the volume keys, the value is boolean.
@@ -3112,6 +3163,14 @@ public final class Settings {
         public static final String NOTIFICATION_CONVERT_SOUND_TO_VIBRATION = "convert_sound_to_vibration";
 
         /**
+         * Whether to allow notification vibration while notification alerts are disabled
+         * (e.g. during phone calls). The vibration pattern to be used will be a subtle one;
+         * custom vibration is disabled at that point.
+         * @hide
+         */
+        public static final String NOTIFICATION_VIBRATE_DURING_ALERTS_DISABLED = "vibrate_while_no_alerts";
+
+        /**
          * Custom navring actions
          *
          * @hide
@@ -3121,6 +3180,13 @@ public final class Settings {
             "navigation_ring_targets_1",
             "navigation_ring_targets_2",
         };
+
+        /**
+         * Volume key controls ringtone or media sound stream
+         *
+         * @hide
+         */
+        public static final String VOLUME_KEYS_CONTROL_RING_STREAM = "volume_keys_control_ring_stream";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -3176,6 +3242,7 @@ public final class Settings {
             TIME_12_24,
             DATE_FORMAT,
             ACCELEROMETER_ROTATION,
+            LOCKSCREEN_ROTATION,
             USER_ROTATION,
             DTMF_TONE_WHEN_DIALING,
             DTMF_TONE_TYPE_WHEN_DIALING,
@@ -3192,6 +3259,7 @@ public final class Settings {
             NOTIFICATION_LIGHT_PULSE_DEFAULT_COLOR,
             NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_ON,
             NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_OFF,
+            NOTIFICATION_VIBRATE_DURING_ALERTS_DISABLED,
             SIP_CALL_OPTIONS,
             SIP_RECEIVE_CALLS,
             POINTER_SPEED,
@@ -4220,6 +4288,25 @@ public final class Settings {
         public static final String SETTINGS_CLASSNAME = "settings_classname";
 
         /**
+         * SELinux enforcing status.
+         * 1 - SELinux is in enforcing mode.
+         * 0 - SELinux is in permissive mode.
+         *
+         * @hide
+         */
+        public static final String SELINUX_ENFORCING = "selinux_enforcing";
+
+        /**
+         * Stores the values of the SELinux booleans. Stored as a comma
+         * seperated list of values, each value being of the form
+         * {@code boolean_name:value} where value is 1 if the boolean is set
+         * and 0 otherwise. Example: {@code bool1:1,bool2:0}.
+         *
+         * @hide
+         */
+        public static final String SELINUX_BOOLEANS = "selinux_booleans";
+
+        /**
          * @deprecated Use {@link android.provider.Settings.Global#USB_MASS_STORAGE_ENABLED} instead
          */
         @Deprecated
@@ -4993,6 +5080,12 @@ public final class Settings {
         public static final String ADVANCED_REBOOT = "advanced_reboot";
 
         /**
+         * Whether newly installed apps should run with privacy guard by default
+         * @hide
+         */
+        public static final String PRIVACY_GUARD_DEFAULT = "privacy_guard_default";
+
+        /**
          * This are the settings to be backed up.
          *
          * NOTE: Settings are backed up and restored in the order they appear
@@ -5017,6 +5110,8 @@ public final class Settings {
             TOUCH_EXPLORATION_ENABLED,
             ACCESSIBILITY_ENABLED,
             ACCESSIBILITY_SPEAK_PASSWORD,
+            SELINUX_ENFORCING,
+            SELINUX_BOOLEANS,
             TTS_USE_DEFAULTS,
             TTS_DEFAULT_RATE,
             TTS_DEFAULT_PITCH,
@@ -5035,7 +5130,8 @@ public final class Settings {
             UI_NIGHT_MODE,
             LOCK_SCREEN_OWNER_INFO,
             LOCK_SCREEN_OWNER_INFO_ENABLED,
-            ADVANCED_REBOOT
+            ADVANCED_REBOOT,
+            PRIVACY_GUARD_DEFAULT
         };
 
         /**
@@ -5057,6 +5153,13 @@ public final class Settings {
          * @hide
          */
         public static final boolean isLocationProviderEnabledForUser(ContentResolver cr, String provider, int userId) {
+            try {
+                if (ActivityManagerNative.getDefault().isPrivacyGuardEnabledForProcess(Binder.getCallingPid())) {
+                    return false;
+                }
+            } catch (RemoteException e) {
+                // ignore
+            }
             String allowedProviders = Settings.Secure.getStringForUser(cr,
                     LOCATION_PROVIDERS_ALLOWED, userId);
             return TextUtils.delimitedStringContains(allowedProviders, ',', provider);

@@ -2,6 +2,7 @@ package com.android.systemui.quicksettings;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.util.Log;
@@ -38,14 +39,16 @@ public class MobileNetworkTypeTile extends QuickSettingsTile implements NetworkS
     private static final int CM_MODE_3GONLY = 1;
     private static final int CM_MODE_BOTH = 2;
 
+    private NetworkController mController;
     private int mMode = NO_NETWORK_MODE_YET;
     private int mIntendedMode = NO_NETWORK_MODE_YET;
     private int mInternalState = STATE_INTERMEDIATE;
     private int mState;
 
-    public MobileNetworkTypeTile(Context context,
-            QuickSettingsController qsc) {
+    public MobileNetworkTypeTile(Context context, QuickSettingsController qsc, NetworkController controller) {
         super(context, qsc);
+
+        mController = controller;
 
         mOnClick = new OnClickListener() {
             @Override
@@ -118,10 +121,15 @@ public class MobileNetworkTypeTile extends QuickSettingsTile implements NetworkS
 
     @Override
     void onPostCreate() {
-        NetworkController controller = new NetworkController(mContext);
-        controller.addNetworkSignalChangedCallback(this);
+        mController.addNetworkSignalChangedCallback(this);
         updateTile();
         super.onPostCreate();
+    }
+
+    @Override
+    public void onDestroy() {
+        mController.removeNetworkSignalChangedCallback(this);
+        super.onDestroy();
     }
 
     @Override
@@ -199,9 +207,9 @@ public class MobileNetworkTypeTile extends QuickSettingsTile implements NetworkS
     }
 
     private int getCurrentCMMode() {
-        return Settings.System.getInt(mContext.getContentResolver(),
+        return Settings.System.getIntForUser(mContext.getContentResolver(),
                 Settings.System.EXPANDED_NETWORK_MODE,
-                CM_MODE_3G2G);
+                CM_MODE_3G2G, UserHandle.USER_CURRENT);
     }
 
     @Override

@@ -3,7 +3,7 @@ package com.android.systemui.quicksettings;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LevelListDrawable;
+import android.os.BatteryManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
@@ -16,17 +16,16 @@ import com.android.systemui.statusbar.policy.DockBatteryController;
 import com.android.systemui.statusbar.policy.DockBatteryController.DockBatteryStateChangeCallback;
 
 public class DockBatteryTile extends QuickSettingsTile implements DockBatteryStateChangeCallback {
-
+    private DockBatteryController mController;
     private boolean mPresent = false;
-    private boolean mCharging = false;
     private int mDockBatteryLevel = 0;
+    private int mDockBatteryStatus;
     private Drawable mDockBatteryIcon;
 
-    private LevelListDrawable mDockBatteryLevels;
-    private LevelListDrawable mChargingDockBatteryLevels;
-
-    public DockBatteryTile(Context context, QuickSettingsController qsc) {
+    public DockBatteryTile(Context context, QuickSettingsController qsc, DockBatteryController controller) {
         super(context, qsc, R.layout.quick_settings_tile_dock_battery);
+
+        mController = controller;
 
         mOnClick = new View.OnClickListener() {
             @Override
@@ -39,15 +38,20 @@ public class DockBatteryTile extends QuickSettingsTile implements DockBatterySta
     @Override
     void onPostCreate() {
         updateTile();
-        DockBatteryController controller = new DockBatteryController(mContext);
-        controller.addStateChangedCallback(this);
+        mController.addStateChangedCallback(this);
         super.onPostCreate();
     }
 
     @Override
-    public void onDockBatteryLevelChanged(int level, boolean present, boolean pluggedIn) {
+    public void onDestroy() {
+        mController.removeStateChangedCallback(this);
+        super.onDestroy();
+    }
+
+    @Override
+    public void onDockBatteryLevelChanged(int level, boolean present, int status) {
         mDockBatteryLevel = level;
-        mCharging = pluggedIn;
+        mDockBatteryStatus = status;
         mPresent = present;
         updateResources();
     }
@@ -59,20 +63,20 @@ public class DockBatteryTile extends QuickSettingsTile implements DockBatterySta
     }
 
     private synchronized void updateTile() {
+        int drawableResId = mDockBatteryStatus == BatteryManager.BATTERY_STATUS_CHARGING
+                ? R.drawable.qs_sys_dock_battery_charging : R.drawable.qs_sys_dock_battery;
+
         mTile.setVisibility(mPresent ? View.VISIBLE : View.GONE);
-        mDockBatteryLevels = (LevelListDrawable) mContext.getResources().getDrawable(R.drawable.qs_sys_dock_battery);
-        mChargingDockBatteryLevels = (LevelListDrawable) mContext.getResources().getDrawable(R.drawable.qs_sys_dock_battery_charging);
-        mDockBatteryIcon = mCharging
-                ? mChargingDockBatteryLevels :
-                  mDockBatteryLevels;
-        if(mDockBatteryLevel == 100) {
+        mDockBatteryIcon = mContext.getResources().getDrawable(drawableResId);
+
+        if (mDockBatteryStatus == BatteryManager.BATTERY_STATUS_FULL) {
             mLabel = mContext.getString(R.string.quick_settings_battery_charged_label);
-        }else{
-            mLabel = mCharging
-                    ? mContext.getString(R.string.quick_settings_battery_charging_label,
-                            mDockBatteryLevel)
-                    : mContext.getString(R.string.status_bar_settings_battery_meter_format,
-                            mDockBatteryLevel);
+        } else if (mDockBatteryStatus == BatteryManager.BATTERY_STATUS_CHARGING) {
+            mLabel = mContext.getString(R.string.quick_settings_battery_charging_label,
+                    mDockBatteryLevel);
+        } else {
+            mLabel = mContext.getString(R.string.status_bar_settings_battery_meter_format,
+                    mDockBatteryLevel);
         }
     }
 
