@@ -233,6 +233,12 @@ int main(int argc, char* const argv[])
     bool wantUsage = false;
     int result = 1;    // pessimistically assume an error.
     int tolerance = 0;
+    char* pt;
+
+    for ( int i = 0; i < argc; i++) {
+        pt = argv[i];
+        printf("argv[%d] = %s \n", i, pt);
+    }
 
     /* default to compression */
     bundle.setCompressionMethod(ZipEntry::kCompressDeflated);

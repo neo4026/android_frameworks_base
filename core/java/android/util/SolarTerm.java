@@ -19,7 +19,7 @@ package android.util;
 import android.content.Context;
 import android.content.res.Resources;
 
-import com.android.internal.R;
+import com.shendu.resource.R;
 
 public class SolarTerm {
 	static int START_YEAR=1970;
